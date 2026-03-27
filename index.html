@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Segantinis Pasteis</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#d32f2f">
+
+<style>
+body{font-family:Arial;background:#fff8e1;text-align:center;padding:20px}
+h1{color:#d32f2f}
+button{background:#d32f2f;color:#fff;border:none;padding:10px;border-radius:8px}
+</style>
+</head>
+
+<body>
+
+<img src="logo.png" width="120">
+<h1>Segantinis Pasteis</h1>
+
+<p>Seu sistema está online 🚀</p>
+
+<button onclick="alert('Sistema funcionando!')">Testar</button>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+</body>
+</html>

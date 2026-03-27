@@ -7,25 +7,201 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#d32f2f">
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
 <style>
-body{font-family:Arial;background:#fff8e1;text-align:center;padding:20px}
-h1{color:#d32f2f}
-button{background:#d32f2f;color:#fff;border:none;padding:10px;border-radius:8px}
+body{font-family:Arial;margin:0;background:#fff8e1}
+.container{max-width:600px;margin:auto;padding:15px}
+.box{background:#fff;padding:15px;border-radius:10px;margin-top:15px}
+button{background:#d32f2f;color:#fff;border:none;padding:10px;border-radius:8px;width:100%}
+input,select{padding:10px;width:100%;margin:5px 0}
+.hidden{display:none}
 </style>
 </head>
-
 <body>
 
-<img src="logo.png" width="120">
-<h1>Segantinis Pasteis</h1>
+<div class="container">
+<h1>🍴 Segantinis Pasteis</h1>
 
-<p>Seu sistema está online 🚀</p>
+<!-- CLIENTE -->
+<div class="box">
+<h2>Pedido</h2>
+<input id="nome" placeholder="Nome">
+<input id="endereco" placeholder="Endereço">
+<select id="bairro"></select>
+<select id="pagamento">
+<option>Pix</option>
+<option>Dinheiro</option>
+<option>Cartão</option>
+</select>
 
-<button onclick="alert('Sistema funcionando!')">Testar</button>
+<div id="produtos"></div>
+
+<p>Total: R$ <span id="total">0</span></p>
+
+<input id="cupom" placeholder="Cupom">
+<button onclick="enviarPedido()">Finalizar Pedido</button>
+</div>
+
+<!-- LOGIN ADMIN -->
+<div class="box">
+<h2>🔐 Admin</h2>
+<input id="email" placeholder="Email">
+<input id="senha" type="password" placeholder="Senha">
+<button onclick="login()">Entrar</button>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="hidden">
+
+<div class="box">
+<h2>Produtos</h2>
+<input id="pNome" placeholder="Nome">
+<input id="pPreco" placeholder="Preço">
+<button onclick="addProduto()">Adicionar</button>
+<div id="listaProdutos"></div>
+</div>
+
+<div class="box">
+<h2>Bairros</h2>
+<input id="bNome" placeholder="Bairro">
+<input id="bTaxa" placeholder="Taxa">
+<button onclick="addBairro()">Adicionar</button>
+<div id="listaBairros"></div>
+</div>
+
+<div class="box">
+<h2>Cupons</h2>
+<input id="cNome" placeholder="Código">
+<input id="cValor" placeholder="Valor">
+<button onclick="addCupom()">Adicionar</button>
+<div id="listaCupons"></div>
+</div>
+
+</div>
+
+</div>
 
 <script>
+const firebaseConfig={
+ apiKey:"SUA_KEY",
+ authDomain:"SEU_APP.firebaseapp.com",
+ databaseURL:"https://SEU_APP.firebaseio.com",
+ projectId:"SEU_APP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+let carrinho=[];
+let total=0;
+let taxa=0;
+
+// PRODUTOS CLIENTE
+db.ref('produtos').on('value',snap=>{
+ produtos.innerHTML='';
+ snap.forEach(c=>{
+  let p=c.val();
+  produtos.innerHTML+=`<p>${p.nome} - R$${p.preco} <button onclick="add('${p.nome}',${p.preco})">+</button></p>`;
+ });
+});
+
+function add(nome,preco){
+ carrinho.push({nome,preco});
+ total+=Number(preco);
+ atualizarTotal();
+}
+
+function atualizarTotal(){
+ totalEl=document.getElementById('total');
+ totalEl.innerText=(total+taxa);
+}
+
+// BAIRROS CLIENTE
+db.ref('bairros').on('value',snap=>{
+ bairro.innerHTML='';
+ snap.forEach(c=>{
+  let b=c.val();
+  bairro.innerHTML+=`<option value="${b.taxa}">${b.nome}</option>`;
+ });
+});
+
+bairro.onchange=function(){
+ taxa=Number(this.value);
+ atualizarTotal();
+}
+
+// ENVIAR PEDIDO
+function enviarPedido(){
+ let nome=document.getElementById('nome').value;
+ let endereco=document.getElementById('endereco').value;
+ let pagamento=document.getElementById('pagamento').value;
+ let cupomTxt=document.getElementById('cupom').value;
+ let desconto=0;
+
+ db.ref('cupons').once('value',snap=>{
+  snap.forEach(c=>{
+   let cu=c.val();
+   if(cu.codigo==cupomTxt){desconto=Number(cu.valor)}
+  });
+
+  let totalFinal=(total+taxa)-desconto;
+
+  db.ref('pedidos').push({
+    nome,endereco,pagamento,carrinho,total:totalFinal
+  });
+
+  let texto=`Pedido Segantinis\nNome:${nome}\nTotal:R$${totalFinal}`;
+  window.open(`https://wa.me/5518999999999?text=${encodeURIComponent(texto)}`);
+ });
+}
+
+// LOGIN
+function login(){
+ firebase.auth().signInWithEmailAndPassword(email.value,senha.value);
+}
+
+firebase.auth().onAuthStateChanged(user=>{
+ if(user){admin.classList.remove('hidden')}
+});
+
+// ADMIN FUNÇÕES
+function addProduto(){db.ref('produtos').push({nome:pNome.value,preco:pPreco.value})}
+function addBairro(){db.ref('bairros').push({nome:bNome.value,taxa:bTaxa.value})}
+function addCupom(){db.ref('cupons').push({codigo:cNome.value,valor:cValor.value})}
+
+// LISTAS ADMIN
+db.ref('produtos').on('value',snap=>{
+ listaProdutos.innerHTML='';
+ snap.forEach(c=>{
+  let p=c.val();
+  listaProdutos.innerHTML+=`${p.nome} <button onclick="remover('produtos','${c.key}')">X</button><br>`;
+ });
+});
+
+db.ref('bairros').on('value',snap=>{
+ listaBairros.innerHTML='';
+ snap.forEach(c=>{
+  let b=c.val();
+  listaBairros.innerHTML+=`${b.nome} <button onclick="remover('bairros','${c.key}')">X</button><br>`;
+ });
+});
+
+db.ref('cupons').on('value',snap=>{
+ listaCupons.innerHTML='';
+ snap.forEach(c=>{
+  let cu=c.val();
+  listaCupons.innerHTML+=`${cu.codigo} <button onclick="remover('cupons','${c.key}')">X</button><br>`;
+ });
+});
+
+function remover(ref,id){db.ref(ref+'/'+id).remove()}
+
+// SERVICE WORKER
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
+ navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 

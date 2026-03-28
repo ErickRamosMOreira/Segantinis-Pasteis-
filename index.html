@@ -97,6 +97,11 @@ input,select{padding:10px;width:100%;margin:5px 0}
   messagingSenderId: "731998263045",
   appId: "1:731998263045:web:06606dbd634adbcddb096c"
 };
+ const audio = new Audio('https://www.soundjay.com/buttons/sounds/beep-01a.mp3');
+
+db.ref('pedidos').on('child_added', snap => {
+  audio.play();
+});
 
 
 firebase.initializeApp(firebaseConfig);

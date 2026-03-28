@@ -9,7 +9,8 @@ h1{color:#d32f2f}
 .box{background:#fff;padding:15px;border-radius:10px;margin-top:20px}
 button{background:#d32f2f;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;margin:3px}
 .alerta{animation:piscar .5s infinite}
-@keyframes piscar{0%{background:#fff3cd}50%{background:red;color:#fff}100%{background:#fff3cd}}
+
+ @keyframes piscar{0%{background:#fff3cd}50%{background:red;color:#fff}100%{background:#fff3cd}}
 .status{padding:5px;border-radius:5px;color:#fff;font-size:12px}
 .recebido{background:#757575}
 .preparando{background:#ff9800}
@@ -41,6 +42,11 @@ button{background:#d32f2f;color:#fff;border:none;padding:8px;border-radius:5px;c
 
 <p>Total: R$ <span id="total">0</span></p>
 <button onclick="finalizarPedido()">Enviar Pedido</button>
+</div>
+ <div id="pixBox" style="display:none;margin-top:10px">
+  <h3>💳 Pague com Pix</h3>
+  <img id="qrcode" width="200">
+  <p id="pixCopia"></p>
 </div>
 
 <div class="box" id="painelPedidos">
@@ -78,13 +84,27 @@ endereco:document.getElementById('endereco').value,
 pagamento:document.getElementById('pagamento').value,
 carrinho,total,status:'recebido'
 };
+function gerarPix(total){
+  // chave pix (troque pela sua)
+  let chave = "SEU_PIX_AQUI";
 
+  let codigo = `00020126360014BR.GOV.BCB.PIX0114${chave}52040000530398654${total}5802BR5920Segantinis Pasteis6009SAO PAULO`;
+
+  document.getElementById('pixBox').style.display = 'block';
+
+  document.getElementById('pixCopia').innerText = codigo;
+
+  document.getElementById('qrcode').src =
+  `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${codigo}`;
+}
 db.ref('pedidos').push(pedido);
 alert('Pedido enviado');
 window.print();
 carrinho=[];total=0;document.getElementById('total').innerText=0;
 }
-
+if(pedido.pagamento === 'Pix'){
+  gerarPix(pedido.total);
+}
 // SOM
 const audio=new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
 

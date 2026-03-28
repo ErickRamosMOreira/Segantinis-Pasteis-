@@ -2,16 +2,16 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Painel Admin - Segantinis</title>
+<title>Segantinis Pasteis - Pedidos</title>
 <style>
-body{font-family:Arial;background:#f5f5f5;padding:20px}
-.login,.painel{max-width:500px;margin:auto;background:#fff;padding:20px;border-radius:10px}
+body{font-family:Arial;background:#fff8e1;padding:20px}
+h1{color:#d32f2f}
+.box{background:#fff;padding:15px;border-radius:10px;margin-top:20px}
+.item{margin:10px 0;padding:10px;border-bottom:1px solid #ddd}
+button{background:#d32f2f;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer}
 input,select{width:100%;padding:8px;margin:5px 0;border-radius:5px;border:1px solid #ccc}
-button{background:#d32f2f;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;margin-top:5px}
-.item{margin:10px 0;padding:10px;background:#eee;border-radius:8px}
-img{width:60px;height:60px;border-radius:5px;object-fit:cover}
+img{width:80px;height:80px;object-fit:cover;border-radius:8px}
 .flex{display:flex;justify-content:space-between;align-items:center}
-.small{font-size:12px;color:#555}
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -19,35 +19,31 @@ img{width:60px;height:60px;border-radius:5px;object-fit:cover}
 </head>
 <body>
 
-<div class="login" id="loginBox">
-<h2>🔐 Login Admin</h2>
-<input id="user" placeholder="Usuário">
-<input id="senha" type="password" placeholder="Senha">
-<button onclick="login()">Entrar</button>
+<h1>🍴 Segantinis Pasteis</h1>
+
+<div class="box">
+<h2>Cardápio</h2>
+<div id="cardapio"></div>
 </div>
 
-<div class="painel" id="painel" style="display:none">
-<h2>⚙️ Painel Administrativo</h2>
-
-<h3>➕ Novo Item</h3>
-<input id="nomeItem" placeholder="Nome do produto">
-<input id="precoItem" placeholder="Preço (ex: 10.00)">
-<input id="imgItem" placeholder="URL da imagem">
-<select id="categoriaItem">
-<option value="Pastel">Pastel</option>
-<option value="Bebida">Bebida</option>
-<option value="Promo">Promoção</option>
+<div class="box">
+<h2>Seus Dados</h2>
+<input id="nome" placeholder="Nome">
+<input id="telefone" placeholder="Telefone">
+<input id="endereco" placeholder="Endereço">
+<select id="pagamento">
+<option>Pix</option>
+<option>Dinheiro</option>
+<option>Cartão</option>
 </select>
-<button onclick="addItem()">Salvar Item</button>
+</div>
 
-<h3>📋 Cardápio</h3>
-<select id="filtro" onchange="carregarItens()">
-<option value="">Todos</option>
-<option value="Pastel">Pastel</option>
-<option value="Bebida">Bebida</option>
-<option value="Promo">Promoção</option>
-</select>
-<div id="lista"></div>
+<div class="box">
+<h2>Carrinho</h2>
+<ul id="lista"></ul>
+<p><strong>Total: R$ <span id="total">0</span></strong></p>
+<button onclick="finalizarPedido()">Enviar Pedido</button>
+<button onclick="imprimirComanda()">Imprimir</button>
 </div>
 
 <script>
@@ -61,77 +57,81 @@ projectId:"segantinis-87159"
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-function login(){
-let u=user.value;
-let s=senha.value;
-if(u==='admin' && s==='1234'){
- loginBox.style.display='none';
- painel.style.display='block';
- carregarItens();
-}else alert('Login inválido');
-}
+let carrinho=[];
+let total=0;
 
-function addItem(){
-let nome=nomeItem.value;
-let preco=precoItem.value;
-let img=imgItem.value;
-let categoria=categoriaItem.value;
-
-if(!nome||!preco)return alert('Preencha nome e preço');
-
- db.ref('cardapio').push({nome,preco,img,categoria});
-
- nomeItem.value='';precoItem.value='';imgItem.value='';
-}
-
-function carregarItens(){
-let lista=document.getElementById('lista');
-let filtro=document.getElementById('filtro').value;
-
+function carregarCardapio(){
  db.ref('cardapio').on('value',snap=>{
-  lista.innerHTML='';
+  let div=document.getElementById('cardapio');
+  div.innerHTML='';
+
   snap.forEach(c=>{
-   let id=c.key;
    let item=c.val();
 
-   if(filtro && item.categoria!==filtro)return;
-
-   lista.innerHTML+=`
+   div.innerHTML+=`
    <div class="item">
-    <div class="flex">
-      <div>
-        <b>${item.nome}</b><br>
-        <span class="small">R$ ${item.preco} | ${item.categoria}</span>
-      </div>
-      ${item.img ? `<img src="${item.img}">` : ''}
-    </div>
-
-    <button onclick="editar('${id}','${item.nome}','${item.preco}','${item.img||''}','${item.categoria}')">Editar</button>
-    <button onclick="remover('${id}')">Excluir</button>
+     <div class="flex">
+       <div>
+         <b>${item.nome}</b><br>
+         R$ ${item.preco}
+       </div>
+       ${item.img?`<img src="${item.img}">`:''}
+     </div>
+     <button onclick="addItem('${item.nome}',${item.preco})">Adicionar</button>
    </div>`;
   });
  });
 }
 
-function remover(id){
- if(confirm('Excluir item?')){
-  db.ref('cardapio/'+id).remove();
- }
+function addItem(nome,preco){
+ carrinho.push({nome,preco});
+ total+=parseFloat(preco);
+ atualizarTela();
 }
 
-function editar(id,nome,preco,img,categoria){
- let novoNome=prompt('Nome:',nome);
- let novoPreco=prompt('Preço:',preco);
- let novaImg=prompt('Imagem URL:',img);
- let novaCategoria=prompt('Categoria:',categoria);
+function atualizarTela(){
+ let lista=document.getElementById('lista');
+ lista.innerHTML='';
 
- db.ref('cardapio/'+id).update({
-  nome:novoNome,
-  preco:novoPreco,
-  img:novaImg,
-  categoria:novaCategoria
+ carrinho.forEach(i=>{
+  lista.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
  });
+
+ document.getElementById('total').innerText=total.toFixed(2);
 }
+
+function gerarTextoPedido(){
+ let nome=document.getElementById('nome').value;
+ let telefone=document.getElementById('telefone').value;
+ let endereco=document.getElementById('endereco').value;
+ let pagamento=document.getElementById('pagamento').value;
+
+ let texto=`Segantinis Pasteis\n\nCliente: ${nome}\nTel: ${telefone}\nEnd: ${endereco}\n\nPedido:\n`;
+
+ carrinho.forEach(i=>{
+  texto+=`- ${i.nome} (R$ ${i.preco})\n`;
+ });
+
+ texto+=`\nTotal: R$ ${total}\nPagamento: ${pagamento}`;
+
+ return texto;
+}
+
+function finalizarPedido(){
+ let pedido=gerarTextoPedido();
+ let numero='5518999999999';
+ let url=`https://wa.me/${numero}?text=${encodeURIComponent(pedido)}`;
+ window.open(url,'_blank');
+}
+
+function imprimirComanda(){
+ let pedido=gerarTextoPedido();
+ let w=window.open('','','width=300,height=600');
+ w.document.write('<pre>'+pedido+'</pre>');
+ w.print();
+}
+
+carregarCardapio();
 </script>
 
 </body>

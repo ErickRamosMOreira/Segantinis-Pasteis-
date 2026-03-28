@@ -10,6 +10,17 @@
     button { background: #d32f2f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; margin-right:5px; }
     input, select { margin: 5px 0; padding: 8px; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
     .box { background: white; padding: 15px; border-radius: 10px; margin-top: 20px; }
+
+    /* 🚨 ALERTA VISUAL */
+    .alerta {
+      animation: piscar 0.5s infinite;
+    }
+
+    @keyframes piscar {
+      0% { background: #fff3cd; }
+      50% { background: #ff5252; color: white; }
+      100% { background: #fff3cd; }
+    }
   </style>
 
   <!-- Firebase -->
@@ -46,7 +57,7 @@
   <button onclick="finalizarPedido()">Enviar Pedido</button>
 </div>
 
-<div class="box">
+<div class="box" id="painelPedidos">
   <h2>Pedidos (Cozinha)</h2>
   <div id="listaPedidos"></div>
 </div>
@@ -66,9 +77,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// SISTEMA
 let carrinho = [];
 let total = 0;
+let tocando = false;
 
 function addItem(nome, preco) {
   carrinho.push({nome, preco});
@@ -106,7 +117,6 @@ function finalizarPedido() {
 
   alert('Pedido enviado!');
 
-  // impressão automática
   setTimeout(()=>{
     window.print();
   },1000);
@@ -116,27 +126,60 @@ function finalizarPedido() {
   atualizarTela();
 }
 
-// 🔔 SOM DE PEDIDO (corrigido para funcionar no navegador)
-// 🔊 SOM MAIS FORTE (estilo iFood)
+// 🔊 SOM FORTE REPETINDO
 const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
 audio.volume = 1.0;
 
-// precisa de interação do usuário antes (regra dos navegadores)
-document.body.addEventListener('click', () => {
+function tocarAlerta(){
+  if(tocando) return;
+  tocando = true;
+
+  let intervalo = setInterval(()=>{
+    audio.currentTime = 0;
+    audio.play();
+  }, 2000);
+
+  // parar quando clicar
+  document.body.onclick = () => {
+    clearInterval(intervalo);
+    tocando = false;
+    document.getElementById('painelPedidos').classList.remove('alerta');
+  }
+}
+
+// LIBERAR SOM
+ document.body.addEventListener('click', () => {
   audio.play().then(()=>{
     audio.pause();
     audio.currentTime = 0;
   }).catch(()=>{});
 }, { once: true });
 
-// 🔔 TOCA SOM QUANDO CHEGA NOVO PEDIDO
+let listaPedidos = document.getElementById('listaPedidos');
+
+// ATUALIZA PEDIDOS
+ db.ref('pedidos').on('value',snap=>{
+ listaPedidos.innerHTML='';
+ snap.forEach(c=>{
+  let p=c.val();
+  listaPedidos.innerHTML+=`
+  <div style="background:#fff3cd;padding:10px;margin:5px;border-radius:8px">
+    <b>${p.nome}</b><br>
+    ${p.carrinho.map(i=>i.nome).join(', ')}<br>
+    💰 R$${p.total}
+  </div>`;
+ });
+});
+
+// 🚨 NOVO PEDIDO = ALERTA TOTAL
  db.ref('pedidos').on('child_added', snap => {
-  audio.currentTime = 0;
-  audio.play().catch(err => console.log('Som bloqueado:', err));
+  tocarAlerta();
+  document.getElementById('painelPedidos').classList.add('alerta');
 });
 
 </script>
 
 </body>
 </html>
+
 

@@ -116,28 +116,21 @@ function finalizarPedido() {
   atualizarTela();
 }
 
-// 🔔 SOM DE PEDIDO
+// 🔔 SOM DE PEDIDO (corrigido para funcionar no navegador)
 const audio = new Audio('https://www.soundjay.com/buttons/sounds/beep-01a.mp3');
 
-// 🍳 PAINEL COZINHA (AQUI QUE FICAVA A DÚVIDA)
-let listaPedidos = document.getElementById('listaPedidos');
-
-db.ref('pedidos').on('value',snap=>{
- listaPedidos.innerHTML='';
- snap.forEach(c=>{
-  let p=c.val();
-  listaPedidos.innerHTML+=`
-  <div style="background:#fff3cd;padding:10px;margin:5px;border-radius:8px">
-    <b>${p.nome}</b><br>
-    ${p.carrinho.map(i=>i.nome).join(', ')}<br>
-    💰 R$${p.total}
-  </div>`;
- });
-});
+// precisa de interação do usuário antes (regra dos navegadores)
+document.body.addEventListener('click', () => {
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+  }).catch(()=>{});
+}, { once: true });
 
 // 🔔 TOCA SOM QUANDO CHEGA NOVO PEDIDO
  db.ref('pedidos').on('child_added', snap => {
-  audio.play();
+  audio.currentTime = 0;
+  audio.play().catch(err => console.log('Som bloqueado:', err));
 });
 
 </script>

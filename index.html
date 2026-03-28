@@ -1,94 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Segantinis Pasteis</title>
+  <meta charset="UTF-8">
+  <title>Segantinis Pasteis - Pedidos</title>
+  <style>
+    body { font-family: Arial; background: #fff8e1; padding: 20px; }
+    h1 { color: #d32f2f; }
+    .item { margin: 10px 0; }
+    button { background: #d32f2f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; margin-right:5px; }
+    input, select { margin: 5px 0; padding: 8px; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
+    .box { background: white; padding: 15px; border-radius: 10px; margin-top: 20px; }
+  </style>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#d32f2f">
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-
-<style>
-body{font-family:Arial;margin:0;background:#fff8e1}
-.container{max-width:600px;margin:auto;padding:15px}
-.box{background:#fff;padding:15px;border-radius:10px;margin-top:15px}
-button{background:#d32f2f;color:#fff;border:none;padding:10px;border-radius:8px;width:100%}
-input,select{padding:10px;width:100%;margin:5px 0}
-.hidden{display:none}
-</style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
-<div class="container">
 <h1>🍴 Segantinis Pasteis</h1>
 
-<!-- CLIENTE -->
 <div class="box">
-<h2>Pedido</h2>
-<input id="nome" placeholder="Nome">
-<input id="endereco" placeholder="Endereço">
-<select id="bairro"></select>
-<select id="pagamento">
-<option>Pix</option>
-<option>Dinheiro</option>
-<option>Cartão</option>
-</select>
-
-<div id="produtos"></div>
-
-<p>Total: R$ <span id="total">0</span></p>
-
-<input id="cupom" placeholder="Cupom">
-<button onclick="enviarPedido()">Finalizar Pedido</button>
-</div>
-
-<!-- LOGIN ADMIN -->
-<div class="box">
-<h2>🔐 Admin</h2>
-<input id="email" placeholder="Email">
-<input id="senha" type="password" placeholder="Senha">
-<button onclick="login()">Entrar</button>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="hidden">
-
-<div class="box">
-<h2>Produtos</h2>
-<input id="pNome" placeholder="Nome">
-<input id="pPreco" placeholder="Preço">
-<button onclick="addProduto()">Adicionar</button>
-<div id="listaProdutos"></div>
+  <h2>Cardápio</h2>
+  <div class="item">Pastel de Carne - R$ 10 <button onclick="addItem('Pastel de Carne',10)">Adicionar</button></div>
+  <div class="item">Pastel de Queijo - R$ 9 <button onclick="addItem('Pastel de Queijo',9)">Adicionar</button></div>
+  <div class="item">Refrigerante - R$ 6 <button onclick="addItem('Refrigerante',6)">Adicionar</button></div>
 </div>
 
 <div class="box">
-<h2>Bairros</h2>
-<input id="bNome" placeholder="Bairro">
-<input id="bTaxa" placeholder="Taxa">
-<button onclick="addBairro()">Adicionar</button>
-<div id="listaBairros"></div>
+  <h2>Seus Dados</h2>
+  <input id="nome" placeholder="Nome">
+  <input id="telefone" placeholder="Telefone">
+  <input id="endereco" placeholder="Endereço">
+  <select id="pagamento">
+    <option>Pix</option>
+    <option>Dinheiro</option>
+    <option>Cartão</option>
+  </select>
 </div>
 
 <div class="box">
-<h2>Cupons</h2>
-<input id="cNome" placeholder="Código">
-<input id="cValor" placeholder="Valor">
-<button onclick="addCupom()">Adicionar</button>
-<div id="listaCupons"></div>
+  <h2>Carrinho</h2>
+  <ul id="lista"></ul>
+  <p><strong>Total: R$ <span id="total">0</span></strong></p>
+  <button onclick="finalizarPedido()">Enviar Pedido</button>
 </div>
 
-</div>
-
+<div class="box">
+  <h2>Pedidos (Cozinha)</h2>
+  <div id="listaPedidos"></div>
 </div>
 
 <script>
- const firebaseConfig = {
+// CONFIG FIREBASE
+const firebaseConfig = {
   apiKey: "AIzaSyAepNKMpg3pxBsYf9dfWAIlWZR6DJClSlw",
   authDomain: "segantinis-87159.firebaseapp.com",
   databaseURL: "https://segantinis-87159-default-rtdb.firebaseio.com",
@@ -97,124 +62,84 @@ input,select{padding:10px;width:100%;margin:5px 0}
   messagingSenderId: "731998263045",
   appId: "1:731998263045:web:06606dbd634adbcddb096c"
 };
- const audio = new Audio('https://www.soundjay.com/buttons/sounds/beep-01a.mp3');
 
-db.ref('pedidos').on('child_added', snap => {
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// SISTEMA
+let carrinho = [];
+let total = 0;
+
+function addItem(nome, preco) {
+  carrinho.push({nome, preco});
+  total += preco;
+  atualizarTela();
+}
+
+function atualizarTela() {
+  let lista = document.getElementById('lista');
+  lista.innerHTML = '';
+
+  carrinho.forEach(item => {
+    let li = document.createElement('li');
+    li.innerText = item.nome + ' - R$ ' + item.preco;
+    lista.appendChild(li);
+  });
+
+  document.getElementById('total').innerText = total;
+}
+
+function finalizarPedido() {
+  let nome = document.getElementById('nome').value;
+  let telefone = document.getElementById('telefone').value;
+  let endereco = document.getElementById('endereco').value;
+  let pagamento = document.getElementById('pagamento').value;
+
+  db.ref('pedidos').push({
+    nome,
+    telefone,
+    endereco,
+    pagamento,
+    carrinho,
+    total
+  });
+
+  alert('Pedido enviado!');
+
+  // impressão automática
+  setTimeout(()=>{
+    window.print();
+  },1000);
+
+  carrinho = [];
+  total = 0;
+  atualizarTela();
+}
+
+// 🔔 SOM DE PEDIDO
+const audio = new Audio('https://www.soundjay.com/buttons/sounds/beep-01a.mp3');
+
+// 🍳 PAINEL COZINHA (AQUI QUE FICAVA A DÚVIDA)
+let listaPedidos = document.getElementById('listaPedidos');
+
+db.ref('pedidos').on('value',snap=>{
+ listaPedidos.innerHTML='';
+ snap.forEach(c=>{
+  let p=c.val();
+  listaPedidos.innerHTML+=`
+  <div style="background:#fff3cd;padding:10px;margin:5px;border-radius:8px">
+    <b>${p.nome}</b><br>
+    ${p.carrinho.map(i=>i.nome).join(', ')}<br>
+    💰 R$${p.total}
+  </div>`;
+ });
+});
+
+// 🔔 TOCA SOM QUANDO CHEGA NOVO PEDIDO
+ db.ref('pedidos').on('child_added', snap => {
   audio.play();
 });
 
-
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
-
-let carrinho=[];
-let total=0;
-let taxa=0;
-
-// PRODUTOS CLIENTE
-db.ref('produtos').on('value',snap=>{
- produtos.innerHTML='';
- snap.forEach(c=>{
-  let p=c.val();
-  produtos.innerHTML+=`<p>${p.nome} - R$${p.preco} <button onclick="add('${p.nome}',${p.preco})">+</button></p>`;
- });
-});
-
-function add(nome,preco){
- carrinho.push({nome,preco});
- total+=Number(preco);
- atualizarTotal();
-}
-
-function atualizarTotal(){
- totalEl=document.getElementById('total');
- totalEl.innerText=(total+taxa);
-}
-
-// BAIRROS CLIENTE
-db.ref('bairros').on('value',snap=>{
- bairro.innerHTML='';
- snap.forEach(c=>{
-  let b=c.val();
-  bairro.innerHTML+=`<option value="${b.taxa}">${b.nome}</option>`;
- });
-});
-
-bairro.onchange=function(){
- taxa=Number(this.value);
- atualizarTotal();
-}
-
-// ENVIAR PEDIDO
-function enviarPedido(){
- let nome=document.getElementById('nome').value;
- let endereco=document.getElementById('endereco').value;
- let pagamento=document.getElementById('pagamento').value;
- let cupomTxt=document.getElementById('cupom').value;
- let desconto=0;
-
- db.ref('cupons').once('value',snap=>{
-  snap.forEach(c=>{
-   let cu=c.val();
-   if(cu.codigo==cupomTxt){desconto=Number(cu.valor)}
-  });
-
-  let totalFinal=(total+taxa)-desconto;
-
-  db.ref('pedidos').push({
-    nome,endereco,pagamento,carrinho,total:totalFinal
-  });
-
-  let texto=`Pedido Segantinis\nNome:${nome}\nTotal:R$${totalFinal}`;
-  window.open(`https://wa.me/5518999999999?text=${encodeURIComponent(texto)}`);
- });
-}
-
-// LOGIN
-function login(){
- firebase.auth().signInWithEmailAndPassword(email.value,senha.value);
-}
-
-firebase.auth().onAuthStateChanged(user=>{
- if(user){admin.classList.remove('hidden')}
-});
-
-// ADMIN FUNÇÕES
-function addProduto(){db.ref('produtos').push({nome:pNome.value,preco:pPreco.value})}
-function addBairro(){db.ref('bairros').push({nome:bNome.value,taxa:bTaxa.value})}
-function addCupom(){db.ref('cupons').push({codigo:cNome.value,valor:cValor.value})}
-
-// LISTAS ADMIN
-db.ref('produtos').on('value',snap=>{
- listaProdutos.innerHTML='';
- snap.forEach(c=>{
-  let p=c.val();
-  listaProdutos.innerHTML+=`${p.nome} <button onclick="remover('produtos','${c.key}')">X</button><br>`;
- });
-});
-
-db.ref('bairros').on('value',snap=>{
- listaBairros.innerHTML='';
- snap.forEach(c=>{
-  let b=c.val();
-  listaBairros.innerHTML+=`${b.nome} <button onclick="remover('bairros','${c.key}')">X</button><br>`;
- });
-});
-
-db.ref('cupons').on('value',snap=>{
- listaCupons.innerHTML='';
- snap.forEach(c=>{
-  let cu=c.val();
-  listaCupons.innerHTML+=`${cu.codigo} <button onclick="remover('cupons','${c.key}')">X</button><br>`;
- });
-});
-
-function remover(ref,id){db.ref(ref+'/'+id).remove()}
-
-// SERVICE WORKER
-if ('serviceWorker' in navigator) {
- navigator.serviceWorker.register('service-worker.js');
-}
 </script>
 
 </body>

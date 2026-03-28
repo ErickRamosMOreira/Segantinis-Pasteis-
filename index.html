@@ -1,185 +1,142 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Segantinis Pasteis - Pedidos</title>
-  <style>
-    body { font-family: Arial; background: #fff8e1; padding: 20px; }
-    h1 { color: #d32f2f; }
-    .item { margin: 10px 0; }
-    button { background: #d32f2f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; margin-right:5px; }
-    input, select { margin: 5px 0; padding: 8px; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
-    .box { background: white; padding: 15px; border-radius: 10px; margin-top: 20px; }
+<meta charset="UTF-8">
+<title>Segantinis Pasteis - Sistema Completo</title>
+<style>
+body{font-family:Arial;background:#fff8e1;padding:20px}
+h1{color:#d32f2f}
+.box{background:#fff;padding:15px;border-radius:10px;margin-top:20px}
+button{background:#d32f2f;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;margin:3px}
+.alerta{animation:piscar .5s infinite}
+@keyframes piscar{0%{background:#fff3cd}50%{background:red;color:#fff}100%{background:#fff3cd}}
+.status{padding:5px;border-radius:5px;color:#fff;font-size:12px}
+.recebido{background:#757575}
+.preparando{background:#ff9800}
+.saiu{background:#2196f3}
+.entregue{background:#4caf50}
+</style>
 
-    /* 🚨 ALERTA VISUAL */
-    .alerta {
-      animation: piscar 0.5s infinite;
-    }
-
-    @keyframes piscar {
-      0% { background: #fff3cd; }
-      50% { background: #ff5252; color: white; }
-      100% { background: #fff3cd; }
-    }
-  </style>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
 <h1>🍴 Segantinis Pasteis</h1>
 
 <div class="box">
-  <h2>Cardápio</h2>
-  <div class="item">Pastel de Carne - R$ 10 <button onclick="addItem('Pastel de Carne',10)">Adicionar</button></div>
-  <div class="item">Pastel de Queijo - R$ 9 <button onclick="addItem('Pastel de Queijo',9)">Adicionar</button></div>
-  <div class="item">Refrigerante - R$ 6 <button onclick="addItem('Refrigerante',6)">Adicionar</button></div>
-</div>
+<h2>Pedido</h2>
+<input id="nome" placeholder="Nome">
+<input id="telefone" placeholder="Telefone">
+<input id="endereco" placeholder="Endereço">
+<select id="pagamento">
+<option>Pix</option>
+<option>Dinheiro</option>
+<option>Cartão</option>
+</select>
 
-<div class="box">
-  <h2>Seus Dados</h2>
-  <input id="nome" placeholder="Nome">
-  <input id="telefone" placeholder="Telefone">
-  <input id="endereco" placeholder="Endereço">
-  <select id="pagamento">
-    <option>Pix</option>
-    <option>Dinheiro</option>
-    <option>Cartão</option>
-  </select>
-</div>
+<button onclick="addItem('Pastel Carne',10)">Carne</button>
+<button onclick="addItem('Pastel Queijo',9)">Queijo</button>
+<button onclick="addItem('Refri',6)">Refri</button>
 
-<div class="box">
-  <h2>Carrinho</h2>
-  <ul id="lista"></ul>
-  <p><strong>Total: R$ <span id="total">0</span></strong></p>
-  <button onclick="finalizarPedido()">Enviar Pedido</button>
+<p>Total: R$ <span id="total">0</span></p>
+<button onclick="finalizarPedido()">Enviar Pedido</button>
 </div>
 
 <div class="box" id="painelPedidos">
-  <h2>Pedidos (Cozinha)</h2>
-  <div id="listaPedidos"></div>
+<h2>Pedidos</h2>
+<div id="listaPedidos"></div>
+</div>
+
+<div class="box">
+<h2>💰 Vendas do Dia</h2>
+<p>Total: R$ <span id="totalVendas">0</span></p>
 </div>
 
 <script>
-// CONFIG FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyAepNKMpg3pxBsYf9dfWAIlWZR6DJClSlw",
-  authDomain: "segantinis-87159.firebaseapp.com",
-  databaseURL: "https://segantinis-87159-default-rtdb.firebaseio.com",
-  projectId: "segantinis-87159",
-  storageBucket: "segantinis-87159.firebasestorage.app",
-  messagingSenderId: "731998263045",
-  appId: "1:731998263045:web:06606dbd634adbcddb096c"
+const firebaseConfig={
+apiKey:"AIzaSyAepNKMpg3pxBsYf9dfWAIlWZR6DJClSlw",
+authDomain:"segantinis-87159.firebaseapp.com",
+databaseURL:"https://segantinis-87159-default-rtdb.firebaseio.com",
+projectId:"segantinis-87159"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
 
-let carrinho = [];
-let total = 0;
-let tocando = false;
+let carrinho=[];
+let total=0;
+let tocando=false;
 
-function addItem(nome, preco) {
-  carrinho.push({nome, preco});
-  total += preco;
-  atualizarTela();
+function addItem(n,p){carrinho.push({nome:n,preco:p});total+=p;document.getElementById('total').innerText=total}
+
+function finalizarPedido(){
+let pedido={
+nome:document.getElementById('nome').value,
+telefone:document.getElementById('telefone').value,
+endereco:document.getElementById('endereco').value,
+pagamento:document.getElementById('pagamento').value,
+carrinho,total,status:'recebido'
+};
+
+db.ref('pedidos').push(pedido);
+alert('Pedido enviado');
+window.print();
+carrinho=[];total=0;document.getElementById('total').innerText=0;
 }
 
-function atualizarTela() {
-  let lista = document.getElementById('lista');
-  lista.innerHTML = '';
+// SOM
+const audio=new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
 
-  carrinho.forEach(item => {
-    let li = document.createElement('li');
-    li.innerText = item.nome + ' - R$ ' + item.preco;
-    lista.appendChild(li);
-  });
+document.body.addEventListener('click',()=>{audio.play().then(()=>{audio.pause();audio.currentTime=0})},{once:true});
 
-  document.getElementById('total').innerText = total;
+function alerta(){
+if(tocando)return;
+tocando=true;
+let i=setInterval(()=>{audio.currentTime=0;audio.play()},2000);
+document.body.onclick=()=>{clearInterval(i);tocando=false;painelPedidos.classList.remove('alerta')}
 }
 
-function finalizarPedido() {
-  let nome = document.getElementById('nome').value;
-  let telefone = document.getElementById('telefone').value;
-  let endereco = document.getElementById('endereco').value;
-  let pagamento = document.getElementById('pagamento').value;
+let lista=document.getElementById('listaPedidos');
+let painelPedidos=document.getElementById('painelPedidos');
+let totalVendas=0;
 
-  db.ref('pedidos').push({
-    nome,
-    telefone,
-    endereco,
-    pagamento,
-    carrinho,
-    total
-  });
-
-  alert('Pedido enviado!');
-
-  setTimeout(()=>{
-    window.print();
-  },1000);
-
-  carrinho = [];
-  total = 0;
-  atualizarTela();
-}
-
-// 🔊 SOM FORTE REPETINDO
-const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-audio.volume = 1.0;
-
-function tocarAlerta(){
-  if(tocando) return;
-  tocando = true;
-
-  let intervalo = setInterval(()=>{
-    audio.currentTime = 0;
-    audio.play();
-  }, 2000);
-
-  // parar quando clicar
-  document.body.onclick = () => {
-    clearInterval(intervalo);
-    tocando = false;
-    document.getElementById('painelPedidos').classList.remove('alerta');
-  }
-}
-
-// LIBERAR SOM
- document.body.addEventListener('click', () => {
-  audio.play().then(()=>{
-    audio.pause();
-    audio.currentTime = 0;
-  }).catch(()=>{});
-}, { once: true });
-
-let listaPedidos = document.getElementById('listaPedidos');
-
-// ATUALIZA PEDIDOS
+// ATUALIZA
  db.ref('pedidos').on('value',snap=>{
- listaPedidos.innerHTML='';
+ lista.innerHTML='';
+ totalVendas=0;
  snap.forEach(c=>{
-  let p=c.val();
-  listaPedidos.innerHTML+=`
-  <div style="background:#fff3cd;padding:10px;margin:5px;border-radius:8px">
-    <b>${p.nome}</b><br>
-    ${p.carrinho.map(i=>i.nome).join(', ')}<br>
-    💰 R$${p.total}
-  </div>`;
+ let id=c.key;
+ let p=c.val();
+ totalVendas+=p.total;
+ lista.innerHTML+=`
+ <div style="margin:10px;padding:10px;border:1px solid #ccc;border-radius:8px">
+ <b>${p.nome}</b><br>
+ ${p.carrinho.map(i=>i.nome).join(', ')}<br>
+ 💰 R$${p.total}<br>
+ <span class="status ${p.status}">${p.status}</span><br>
+ 
+ <button onclick="mudarStatus('${id}','preparando')">Preparando</button>
+ <button onclick="mudarStatus('${id}','saiu')">Saiu</button>
+ <button onclick="mudarStatus('${id}','entregue')">Entregue</button>
+ </div>`;
  });
+ document.getElementById('totalVendas').innerText=totalVendas;
 });
 
-// 🚨 NOVO PEDIDO = ALERTA TOTAL
- db.ref('pedidos').on('child_added', snap => {
-  tocarAlerta();
-  document.getElementById('painelPedidos').classList.add('alerta');
+// NOVO PEDIDO
+ db.ref('pedidos').on('child_added',()=>{
+ alerta();
+ painelPedidos.classList.add('alerta');
 });
+
+function mudarStatus(id,status){
+ db.ref('pedidos/'+id).update({status});
+}
 
 </script>
-
 </body>
 </html>
+
 
 

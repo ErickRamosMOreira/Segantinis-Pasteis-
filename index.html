@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
+
 <style>
 body{font-family:Arial;margin:0;background:#fff8e1}
 .container{max-width:600px;margin:auto;padding:15px}
@@ -85,12 +86,16 @@ input,select{padding:10px;width:100%;margin:5px 0}
 </div>
 
 <script>
-const firebaseConfig={
- apiKey:"SUA_KEY",
- authDomain:"SEU_APP.firebaseapp.com",
- databaseURL:"https://SEU_APP.firebaseio.com",
- projectId:"SEU_APP"
+ const firebaseConfig = {
+  apiKey: "AIzaSyAepNKMpg3pxBsYf9dfWAIlWZR6DJClSlw",
+  authDomain: "segantinis-87159.firebaseapp.com",
+  databaseURL: "https://segantinis-87159-default-rtdb.firebaseio.com",
+  projectId: "segantinis-87159",
+  storageBucket: "segantinis-87159.firebasestorage.app",
+  messagingSenderId: "731998263045",
+  appId: "1:731998263045:web:06606dbd634adbcddb096c"
 };
+
 
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
